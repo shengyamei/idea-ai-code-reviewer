@@ -10,10 +10,11 @@ dependencies {
     }
 }
 
-// 本机可用 JDK 26 编译，但产出 Java 17 字节码，保证插件能装进低版本 IDEA
+// 编译使用本机 JDK 26（不下载其他 JDK），产出 Java 17 字节码，保证插件能装进低版本 IDEA
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(26)
+    }
 }
 
 tasks.withType<JavaCompile> {
