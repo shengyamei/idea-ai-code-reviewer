@@ -27,8 +27,17 @@
 ## 目录结构
 
 ```
-├── docs/                 # 项目文档（设计说明、备赛计划等）
-├── src/                  # 插件源码（开发中）
+├── docs/                          # 项目文档（设计说明、备赛计划等）
+├── src/
+│   └── main/
+│       ├── java/com/aireview/     # 插件源码
+│       │   ├── model/             # IssueModel 契约（三方共用）
+│       │   ├── engine/            # 评审引擎（盛雅梅）
+│       │   ├── analysis/          # PSI 框架感知分析（左晶晶）
+│       │   └── ui/                # 插件交互（葛佩娴）
+│       └── resources/META-INF/    # plugin.xml 插件描述文件
+├── gradle/                        # Gradle Wrapper
+├── build.gradle.kts               # 构建配置（目标平台 IDEA 2024.2+）
 ├── README.md
 └── .gitignore
 ```
@@ -45,11 +54,15 @@
 
 ## 开发环境
 
-- JDK 17
-- IntelliJ IDEA Community / Ultimate 2023.2+
-- Gradle Wrapper（工程内自带）
+- JDK：本机任意较新版本（团队当前使用 JDK 26），工程配置产出 Java 17 字节码，保证兼容性
+- IntelliJ IDEA：目标平台 2024.2+，开发用任意较新版本即可
+- Gradle Wrapper：工程内自带（Gradle 9.5）
 
-> 插件工程搭建后本节补充具体运行方式（`./gradlew runIde` 等）。
+## 运行与调试
+
+1. 用 IDEA 打开本工程目录，等待 Gradle 同步完成
+2. 打开 Gradle 工具窗口 → `任务 → intellij platform → runIde`
+3. 首次运行会自动下载目标平台 IDEA 沙箱（约数百 MB），之后弹出沙箱窗口即为就绪
 
 ## 相关文档
 

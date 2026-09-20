@@ -16,6 +16,7 @@ target/
 logs/
 tmp/
 *.tmp
+.template_tmp/
 
 # --- 操作系统 ---
 .DS_Store
