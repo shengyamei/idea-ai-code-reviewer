@@ -1,0 +1,27 @@
+# --- Java / Gradle ---
+build/
+out/
+target/
+.gradle/
+
+# --- IDE ---
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# --- 日志与临时文件 ---
+*.log
+logs/
+tmp/
+*.tmp
+
+# --- 操作系统 ---
+.DS_Store
+Thumbs.db
+
+# --- 敏感信息（禁止入库） ---
+*.env
+.env
+local.properties
