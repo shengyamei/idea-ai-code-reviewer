@@ -12,10 +12,10 @@ dependencies {
     }
 }
 
-// 编译使用本机 JDK 26（不下载其他 JDK），产出 Java 17 字节码，保证插件能装进低版本 IDEA
+// 统一使用 JDK 17（LTS）：全组标配、沙箱 IDEA 2024.2 原生支持，直接产出 17 字节码
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(26)
+        languageVersion = JavaLanguageVersion.of(17)
     }
 }
 
