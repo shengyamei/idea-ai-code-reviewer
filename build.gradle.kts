@@ -7,6 +7,8 @@ dependencies {
     intellijPlatform {
         // 目标平台：IDEA 社区版 2024.2（兼容 2024.2 及以上的 IDEA）
         intellijIdeaCommunity("2024.2")
+        // Java 语言支持：PsiJavaFile / PsiMethod / PsiClass 等 Java PSI 类来自该内置插件
+        bundledPlugin("com.intellij.java")
     }
 }
 
