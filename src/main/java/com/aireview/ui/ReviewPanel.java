@@ -1,6 +1,8 @@
 package com.aireview.ui;
 
 import com.aireview.model.IssueModel;
+import com.aireview.model.Severity;
+import com.aireview.model.Source;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -93,13 +95,36 @@ public class ReviewPanel extends JPanel {
         tableModel.setRowCount(0);
         for (IssueModel issue : newIssues) {
             tableModel.addRow(new Object[]{
-                    issue.getSource(),
-                    issue.getSeverity(),
+                    sourceText(issue.getSource()),
+                    severityText(issue.getSeverity()),
                     issue.getStartLine(),
                     issue.getMessage()
             });
         }
         adjustRowHeights();
+    }
+
+    /** 来源显示为中文（演示更直观）。 */
+    private static String sourceText(Source source) {
+        if (source == null) {
+            return "";
+        }
+        return switch (source) {
+            case RULE -> "规则引擎";
+            case LLM -> "大模型";
+        };
+    }
+
+    /** 级别显示为中文（演示更直观）。 */
+    private static String severityText(Severity severity) {
+        if (severity == null) {
+            return "";
+        }
+        return switch (severity) {
+            case CRITICAL -> "严重";
+            case MAJOR -> "警告";
+            case MINOR -> "建议";
+        };
     }
 
     /** 按内容自动调整每行高度（配合描述列换行）。 */
