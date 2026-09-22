@@ -39,6 +39,8 @@ java {
 
 tasks.withType<JavaCompile> {
     options.release.set(17)
+    // 显式指定 UTF-8：避免中文 Windows 命令行构建时按 GBK 读取源文件而失败
+    options.encoding = "UTF-8"
 }
 
 intellijPlatform {
