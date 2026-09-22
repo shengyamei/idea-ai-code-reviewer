@@ -1,0 +1,13 @@
+{
+  "sample": "S07_tx_mixed_hit_and_rollback_for.java",
+  "description": "混合文件：risky() 未配 rollbackFor 应命中，safe() 已配 rollbackFor 不应命中，期望共 1 条",
+  "expectedIssues": [
+    {
+      "ruleId": "TransactionRollbackFor",
+      "severity": "CRITICAL",
+      "startLine": 4,
+      "endLine": 4,
+      "reason": "risky() 的 @Transactional 所在行；safe() 已配 rollbackFor 不报"
+    }
+  ]
+}

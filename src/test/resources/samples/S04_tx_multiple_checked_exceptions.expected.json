@@ -1,0 +1,13 @@
+{
+  "sample": "S04_tx_multiple_checked_exceptions.java",
+  "description": "一个方法声明多个受检异常（IOException, SQLException），期望命中 1 条，证据应包含两个异常名",
+  "expectedIssues": [
+    {
+      "ruleId": "TransactionRollbackFor",
+      "severity": "CRITICAL",
+      "startLine": 4,
+      "endLine": 4,
+      "reason": "@Transactional 所在行"
+    }
+  ]
+}

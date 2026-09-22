@@ -1,0 +1,5 @@
+{
+  "sample": "S09_tx_runtime_exception_not_reported.java",
+  "description": "仅声明运行时异常 IllegalStateException，Spring 默认即回滚，不应报告（反例）",
+  "expectedIssues": []
+}

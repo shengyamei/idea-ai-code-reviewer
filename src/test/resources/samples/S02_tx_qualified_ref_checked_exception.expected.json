@@ -1,0 +1,13 @@
+{
+  "sample": "S02_tx_qualified_ref_checked_exception.java",
+  "description": "全限定名注解（无 import）+ 受检异常 SQLException，期望命中 1 条（注解行 2）",
+  "expectedIssues": [
+    {
+      "ruleId": "TransactionRollbackFor",
+      "severity": "CRITICAL",
+      "startLine": 2,
+      "endLine": 2,
+      "reason": "@org.springframework.transaction.annotation.Transactional 所在行"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "sample": "S03_tx_custom_checked_exception_two_methods.java",
+  "description": "自定义受检异常 BizException，两个事务方法各命中，期望 2 条（注解行 7 与 11）",
+  "expectedIssues": [
+    {
+      "ruleId": "TransactionRollbackFor",
+      "severity": "CRITICAL",
+      "startLine": 7,
+      "endLine": 7,
+      "reason": "create() 的 @Transactional 所在行"
+    },
+    {
+      "ruleId": "TransactionRollbackFor",
+      "severity": "CRITICAL",
+      "startLine": 11,
+      "endLine": 11,
+      "reason": "cancel() 的 @Transactional 所在行"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "sample": "S01_tx_short_name_checked_exception.java",
+  "description": "短名注解 @Transactional + 受检异常 IOException，未配置 rollbackFor，期望命中 1 条（注解行 4）",
+  "expectedIssues": [
+    {
+      "ruleId": "TransactionRollbackFor",
+      "severity": "CRITICAL",
+      "startLine": 4,
+      "endLine": 4,
+      "reason": "@Transactional 所在行"
+    }
+  ]
+}
