@@ -89,13 +89,43 @@ public class ReviewService {
     }
 
     /**
-     * 生成修复补丁，填充fixPatch字段
+     * 生成修复补丁，填充fixPatch字段。
+     * 事务规则：在 @Transactional 注解上补 rollbackFor = Exception.class（复用该行原文、仅替换注解片段，
+     * 与"整行替换"语义一致）；注解跨行或行内圆括号不配平时不生成补丁，避免误伤代码。
      */
     private void generatePatch(IssueModel issue, String sourceCode) {
-        if(!issue.isFixable()){
+        if (!issue.isFixable()) {
             return;
         }
-        // 补丁生成逻辑，可扩展
-        issue.setFixPatch("// auto generated patch");
+        if ("TransactionRollbackFor".equals(issue.getRuleId())) {
+            String[] lines = sourceCode.split("\n", -1);
+            int index = issue.getStartLine() - 1;
+            if (index < 0 || index >= lines.length) {
+                return;
+            }
+            String line = lines[index];
+            if (!isBracketBalanced(line)) {
+                return;
+            }
+            if (line.contains("@Transactional(")) {
+                issue.setFixPatch(line.replace("@Transactional(", "@Transactional(rollbackFor = Exception.class, "));
+            } else if (line.contains("@Transactional")) {
+                issue.setFixPatch(line.replace("@Transactional", "@Transactional(rollbackFor = Exception.class)"));
+            }
+        }
+    }
+
+    /** 行内圆括号是否配平（跨行注解不生成补丁）。 */
+    private static boolean isBracketBalanced(String line) {
+        int depth = 0;
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (c == '(') {
+                depth++;
+            } else if (c == ')') {
+                depth--;
+            }
+        }
+        return depth == 0;
     }
 }
