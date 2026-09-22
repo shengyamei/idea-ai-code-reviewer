@@ -10,4 +10,19 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.java</depends>
+
+    <actions>
+        <action id="com.aireview.ReviewAction"
+                class="com.aireview.ui.ReviewAction"
+                text="智能代码评审"
+                description="对当前文件执行智能代码评审">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+        </action>
+    </actions>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="代码评审"
+                    anchor="right"
+                    factoryClass="com.aireview.ui.ReviewToolWindowFactory"/>
+    </extensions>
 </idea-plugin>
