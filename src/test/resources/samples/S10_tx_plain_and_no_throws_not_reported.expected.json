@@ -1,0 +1,5 @@
+{
+  "sample": "S10_tx_plain_and_no_throws_not_reported.java",
+  "description": "无注解的 throws 方法 + 无 throws 的注解方法，均不应报告（反例）",
+  "expectedIssues": []
+}

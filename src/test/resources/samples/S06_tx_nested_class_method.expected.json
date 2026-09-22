@@ -1,0 +1,13 @@
+{
+  "sample": "S06_tx_nested_class_method.java",
+  "description": "内部静态嵌套类中的事务方法，遍历应不遗漏，期望命中 1 条（注解行 6）",
+  "expectedIssues": [
+    {
+      "ruleId": "TransactionRollbackFor",
+      "severity": "CRITICAL",
+      "startLine": 6,
+      "endLine": 6,
+      "reason": "Inner.innerOp() 的 @Transactional 所在行"
+    }
+  ]
+}

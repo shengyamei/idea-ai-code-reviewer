@@ -1,6 +1,6 @@
 package com.aireview.ui;
 
-import com.aireview.engine.MockReviewServiceImpl;
+import com.aireview.analysis.TransactionalAnalyzer;
 import com.aireview.engine.ReviewService;
 import com.aireview.model.IssueModel;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
@@ -22,7 +22,7 @@ import java.util.List;
 
 /**
  * 编辑器右键菜单"智能代码评审"入口。
- * 当前阶段：调用 MockReviewServiceImpl 提供结果；盛雅梅的 ReviewServiceImpl 就绪后改一行即可接入。
+ * 调用真实融合层 ReviewService：框架规则分析（TransactionalAnalyzer）+ PMD + LLM 汇总。
  */
 public class ReviewAction extends AnAction {
 
@@ -39,8 +39,8 @@ public class ReviewAction extends AnAction {
             return;
         }
 
-        // TODO 接入盛雅梅的真实引擎后，把 MockReviewServiceImpl 换成她的 ReviewServiceImpl 即可
-        ReviewService service = new MockReviewServiceImpl();
+        // 真实融合层：注入框架分析器（PMD/LLM 在 ReviewService 内部，暂为占位）
+        ReviewService service = new ReviewService(new TransactionalAnalyzer());
         List<IssueModel> issues = service.review(file);
 
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID);
@@ -53,7 +53,7 @@ public class ReviewAction extends AnAction {
         // 工具窗口首次打开时内容是异步创建的，延迟到事件队列末尾再填充数据
         ApplicationManager.getApplication().invokeLater(() -> applyIssues(toolWindow, issues));
 
-        LOG.info("触发评审: " + file.getName() + "，模拟结果 " + issues.size() + " 条");
+        LOG.info("触发评审: " + file.getName() + "，结果 " + issues.size() + " 条");
     }
 
     /** 在工具窗口里找到评审面板并填充数据（不按索引取内容，避免索引越界异常）。 */

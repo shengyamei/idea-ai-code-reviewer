@@ -124,6 +124,7 @@ public class ReviewPanel extends JPanel {
             case CRITICAL -> "严重";
             case MAJOR -> "警告";
             case MINOR -> "建议";
+            case INFO -> "提示";
         };
     }
 

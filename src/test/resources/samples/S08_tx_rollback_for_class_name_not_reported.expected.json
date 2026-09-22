@@ -1,0 +1,5 @@
+{
+  "sample": "S08_tx_rollback_for_class_name_not_reported.java",
+  "description": "已配置 rollbackForClassName，不应报告（反例）",
+  "expectedIssues": []
+}
