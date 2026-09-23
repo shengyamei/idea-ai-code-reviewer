@@ -6,6 +6,7 @@ import com.aireview.model.IssueModel;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.psi.PsiFile;
 
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -52,6 +53,25 @@ public class ReviewServicePmdTest extends FrameworkAnalyzerTestCase {
         assertTrue(containsRule(issues, "TransactionRollbackFor"));
         assertTrue(containsRule(issues, "UnusedLocalVariable"));
         assertTrue(containsRule(issues, "EmptyCatchBlock"));
+    }
+
+    /**
+     * PMD 类型系统初始化依赖 classLoader.getResourceAsStream("java/lang/*.class")。
+     * IDEA 插件类加载器对 JDK 资源不可见（真机环境中曾导致初始化 NPE），
+     * 因此 runPmdScan 显式指定平台类加载器——这里锁定该事实：平台 CL 必须可解析 JDK 基础类。
+     */
+    public void testPlatformClassLoaderResolvesJdkClassResources() {
+        assertNotNull(ClassLoader.getPlatformClassLoader().getResourceAsStream("java/lang/Boolean.class"));
+        assertNotNull(ClassLoader.getPlatformClassLoader().getResourceAsStream("java/lang/Object.class"));
+
+        // 模拟 IDEA 插件类加载器：对资源请求完全不委托父加载器
+        ClassLoader isolated = new ClassLoader(null) {
+            @Override
+            public URL getResource(String name) {
+                return null;
+            }
+        };
+        assertNull(isolated.getResourceAsStream("java/lang/Boolean.class"));
     }
 
     private static boolean containsRule(List<IssueModel> issues, String ruleId) {

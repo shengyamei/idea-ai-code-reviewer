@@ -75,6 +75,9 @@ public class ReviewService {
         List<IssueModel> list = new ArrayList<>();
         try {
             PMDConfiguration configuration = new PMDConfiguration();
+            // IDEA 插件类加载器对 JDK 资源（java/lang/*.class）不可见，PMD 类型系统初始化会失败，
+            // 必须显式指定平台类加载器用于解析 JDK 符号（单测环境为常规类加载器，不会暴露此问题）
+            configuration.setClassLoader(ClassLoader.getPlatformClassLoader());
             configuration.addRuleSet("category/java/bestpractices.xml/UnusedLocalVariable");
             configuration.addRuleSet("category/java/errorprone.xml/EmptyCatchBlock");
             try (PmdAnalysis analysis = PmdAnalysis.create(configuration)) {
