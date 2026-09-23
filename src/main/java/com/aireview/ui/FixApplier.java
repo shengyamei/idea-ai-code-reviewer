@@ -5,6 +5,7 @@ import com.intellij.diff.DiffContentFactory;
 import com.intellij.diff.DiffDialogHints;
 import com.intellij.diff.DiffManager;
 import com.intellij.diff.requests.SimpleDiffRequest;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -35,21 +36,25 @@ public final class FixApplier {
             Messages.showWarningDialog(project, "找不到目标文件", "智能代码评审");
             return;
         }
-        Document document = FileDocumentManager.getInstance().getDocument(file);
+        // 新版 IDEA 平台要求文档模型访问必须处于读动作内（本方法由 EDT 的按钮触发，同样适用）
+        Document document = ReadAction.compute(() -> FileDocumentManager.getInstance().getDocument(file));
         if (document == null) {
             Messages.showWarningDialog(project, "无法读取文件内容", "智能代码评审");
             return;
         }
 
-        // 行号严格限制在文档范围内（1 起），避免越界
-        int lineCount = document.getLineCount();
-        int startLine = Math.min(Math.max(issue.getStartLine(), 1), lineCount);
-        int endLine = Math.min(Math.max(issue.getEndLine(), startLine), lineCount);
-        int startOffset = document.getLineStartOffset(startLine - 1);
-        int endOffset = document.getLineEndOffset(endLine - 1);
+        // 行号严格限制在文档范围内（1 起），避免越界；读动作内完成区间计算
+        int[] range = ReadAction.compute(() -> {
+            int lineCount = document.getLineCount();
+            int startLine = Math.min(Math.max(issue.getStartLine(), 1), lineCount);
+            int endLine = Math.min(Math.max(issue.getEndLine(), startLine), lineCount);
+            return new int[]{document.getLineStartOffset(startLine - 1), document.getLineEndOffset(endLine - 1)};
+        });
+        int startOffset = range[0];
+        int endOffset = range[1];
 
-        // Diff 预览：左侧当前代码，右侧修复后代码（模态窗口，关闭后再确认）
-        String currentText = document.getText(new TextRange(startOffset, endOffset));
+        // Diff 预览：左侧当前代码，右侧修复后代码（模态窗口，关闭后再确认；文本截取同样在读动作内）
+        String currentText = ReadAction.compute(() -> document.getText(new TextRange(startOffset, endOffset)));
         DiffContentFactory contentFactory = DiffContentFactory.getInstance();
         SimpleDiffRequest request = new SimpleDiffRequest(
                 "修复预览 - " + issue.getMessage(),

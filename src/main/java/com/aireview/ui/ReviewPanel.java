@@ -3,6 +3,7 @@ package com.aireview.ui;
 import com.aireview.model.IssueModel;
 import com.aireview.model.Severity;
 import com.aireview.model.Source;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -162,8 +163,11 @@ public class ReviewPanel extends JPanel {
             return;
         }
         // 行号严格限制在 [1, 文档实际行数] 内，避免超范围导致跳转异常
-        Document document = FileDocumentManager.getInstance().getDocument(file);
-        int maxLine = document != null ? document.getLineCount() : Integer.MAX_VALUE;
+        // 新版 IDEA 平台要求文档模型访问必须处于读动作内（本方法由 EDT 的双击/按钮触发，同样适用）
+        Integer maxLine = ReadAction.compute(() -> {
+            Document document = FileDocumentManager.getInstance().getDocument(file);
+            return document != null ? document.getLineCount() : Integer.MAX_VALUE;
+        });
         int line = Math.min(Math.max(issue.getStartLine(), 1), maxLine);
         // OpenFileDescriptor 行号从 0 开始，IssueModel 行号从 1 开始，这里减 1
         new OpenFileDescriptor(project, file, line - 1, 0).navigate(true);
