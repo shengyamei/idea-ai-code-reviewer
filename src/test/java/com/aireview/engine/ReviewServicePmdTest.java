@@ -95,6 +95,19 @@ public class ReviewServicePmdTest extends FrameworkAnalyzerTestCase {
         }
     }
 
+    /** 健壮性保障：文件存在语法残缺（类/方法未闭合）时，评审不崩溃，且可解析部分照常产出结果。 */
+    public void testBrokenSyntaxFileDoesNotCrashReview() throws Exception {
+        String broken = "class Broken {\n"
+                + "    @Transactional\n"
+                + "    public void run() throws java.io.IOException {\n"
+                + "        doWork();\n";
+        PsiFile file = myFixture.configureByText("Broken.java", broken);
+        List<IssueModel> issues = ReadAction.compute(() -> new ReviewService(new TransactionalAnalyzer()).review(file));
+        // PSI 错误恢复下仍能解析出 @Transactional 与受检异常声明，事务检查照常命中
+        assertNotNull(issues);
+        assertTrue(containsRule(issues, "TransactionRollbackFor"));
+    }
+
     /** 现场演示保障：模拟"现场编辑制造缺陷"——删掉 archive 的 rollbackFor 参数后，应立即多报 1 条事务。 */
     public void testLiveEditRemovingRollbackForTriggersNewIssue() throws Exception {
         String source = Files.readString(Path.of("demo", "DemoUserService.java"), StandardCharsets.UTF_8);
