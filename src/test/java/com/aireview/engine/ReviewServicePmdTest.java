@@ -6,6 +6,9 @@ import com.aireview.model.IssueModel;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.psi.PsiFile;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -35,6 +38,18 @@ public class ReviewServicePmdTest extends FrameworkAnalyzerTestCase {
         PsiFile file = myFixture.configureByText("Foo.java", code);
         List<IssueModel> issues = ReadAction.compute(() -> new ReviewService(new TransactionalAnalyzer()).review(file));
 
+        assertTrue(containsRule(issues, "UnusedLocalVariable"));
+        assertTrue(containsRule(issues, "EmptyCatchBlock"));
+    }
+
+    /** 演示样本整文件：应产出 3 条缺陷（事务 1 + PMD 2），锁定演示故事线。 */
+    public void testDemoFileReportsThreeDefects() throws Exception {
+        String source = Files.readString(Path.of("demo", "DemoOrderService.java"), StandardCharsets.UTF_8);
+        PsiFile file = myFixture.configureByText("DemoOrderService.java", source);
+        List<IssueModel> issues = ReadAction.compute(() -> new ReviewService(new TransactionalAnalyzer()).review(file));
+
+        assertEquals(3, issues.size());
+        assertTrue(containsRule(issues, "TransactionRollbackFor"));
         assertTrue(containsRule(issues, "UnusedLocalVariable"));
         assertTrue(containsRule(issues, "EmptyCatchBlock"));
     }
