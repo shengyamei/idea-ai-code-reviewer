@@ -19,6 +19,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
+import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import java.awt.BorderLayout;
@@ -103,6 +104,8 @@ public class ReviewPanel extends JPanel {
             });
         }
         adjustRowHeights();
+        // 首次填充时表格可能尚未完成布局（列宽不可靠），延后一帧按最终列宽再校正一次行高
+        SwingUtilities.invokeLater(this::adjustRowHeights);
     }
 
     /** 来源显示为中文（演示更直观）。 */
@@ -136,7 +139,9 @@ public class ReviewPanel extends JPanel {
             int height = table.getRowHeight();
             for (int column = 0; column < table.getColumnCount(); column++) {
                 Component comp = table.prepareRenderer(table.getCellRenderer(row, column), row, column);
-                height = Math.max(height, comp.getPreferredSize().height + 4);
+                // 先按当前列宽设置组件尺寸：JTextArea 只有拿到实际宽度才能算出换行后的真实高度
+                comp.setSize(table.getColumnModel().getColumn(column).getWidth(), Short.MAX_VALUE);
+                height = Math.max(height, comp.getPreferredSize().height + 6);
             }
             table.setRowHeight(row, height);
         }
