@@ -67,4 +67,32 @@ public class TransactionalAnalyzerTest extends FrameworkAnalyzerTestCase {
         assertEquals(4, issues.get(0).getStartLine());
         assertEquals(8, issues.get(1).getStartLine());
     }
+
+    /**
+     * 解析失败降级：异常类型无法解析（工程未关联 JDK / 索引未就绪）时按短名启发式，
+     * 非 RuntimeException/Error 家族命名仍按受检异常检出，保证解析环境不完整时演示仍稳定。
+     */
+    public void testUnresolvedCheckedExceptionFallsBackToNameHeuristic() {
+        String code = "class Foo {\n" +
+                "    @Transactional\n" +
+                "    public void bar() throws UnknownCheckedException {\n" +
+                "    }\n" +
+                "}\n";
+        List<IssueModel> issues = new TransactionalAnalyzer().analyze(myFixture.configureByText("Unknown.java", code));
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0).getEvidence().contains("UnknownCheckedException"));
+    }
+
+    /** 解析失败降级：短名可判定属于 RuntimeException 家族时不报。 */
+    public void testUnresolvedRuntimeExceptionNotReported() {
+        String code = "class Foo {\n" +
+                "    @Transactional\n" +
+                "    public void bar() throws BizRuntimeException {\n" +
+                "    }\n" +
+                "}\n";
+        List<IssueModel> issues = new TransactionalAnalyzer().analyze(myFixture.configureByText("Biz.java", code));
+
+        assertEmpty(issues);
+    }
 }

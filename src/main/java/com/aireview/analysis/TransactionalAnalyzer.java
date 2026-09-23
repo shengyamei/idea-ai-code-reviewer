@@ -4,6 +4,7 @@ import com.aireview.model.IssueModel;
 import com.aireview.model.Severity;
 import com.aireview.model.Source;
 import com.intellij.openapi.application.ReadAction;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.psi.CommonClassNames;
 import com.intellij.psi.JavaRecursiveElementVisitor;
@@ -31,6 +32,8 @@ public class TransactionalAnalyzer implements FrameworkAnalyzer {
 
     private static final String TX_FQN = "org.springframework.transaction.annotation.Transactional";
     private static final String RULE_ID = "TransactionRollbackFor";
+
+    private static final Logger LOG = Logger.getInstance(TransactionalAnalyzer.class);
 
     @Override
     public List<IssueModel> analyze(PsiFile file) {
@@ -96,12 +99,21 @@ public class TransactionalAnalyzer implements FrameworkAnalyzer {
                 || annotation.findDeclaredAttributeValue("rollbackForClassName") != null;
     }
 
-    /** 只保留受检异常：Throwable 子类且非 RuntimeException / Error。解析失败时保守不报。 */
+    /**
+     * 只保留受检异常：Throwable 子类且非 RuntimeException / Error。
+     * 类型无法解析（工程未关联 JDK / 索引未就绪）时按短名启发式兑底，保证解析环境不完整时仍能检出。
+     */
     private List<String> checkedExceptionsOf(PsiMethod method) {
         List<String> names = new ArrayList<>();
         for (PsiClassType type : method.getThrowsList().getReferencedTypes()) {
             PsiClass resolved = type.resolve();
             if (resolved == null) {
+                String presentable = type.getPresentableText();
+                if (isLikelyUnchecked(presentable)) {
+                    continue;
+                }
+                LOG.info("事务分析：异常类型 " + presentable + " 未能解析，按受检异常兑底处理（工程解析环境可能不完整）");
+                names.add(presentable);
                 continue;
             }
             if (!InheritanceUtil.isInheritor(resolved, CommonClassNames.JAVA_LANG_THROWABLE)) {
@@ -114,6 +126,20 @@ public class TransactionalAnalyzer implements FrameworkAnalyzer {
             names.add(type.getPresentableText());
         }
         return names;
+    }
+
+    /** 解析失败时的短名启发式：命中 RuntimeException/Error 家族常见命名则不按受检异常处理。 */
+    private static boolean isLikelyUnchecked(String shortName) {
+        if (shortName.endsWith("RuntimeException") || shortName.endsWith("Error")) {
+            return true;
+        }
+        return switch (shortName) {
+            case "RuntimeException", "Error", "IllegalArgumentException", "IllegalStateException",
+                 "NullPointerException", "UnsupportedOperationException", "IndexOutOfBoundsException",
+                 "ArithmeticException", "ClassCastException", "NumberFormatException",
+                 "ConcurrentModificationException", "SecurityException" -> true;
+            default -> false;
+        };
     }
 
     private IssueModel buildIssue(PsiFile file, PsiMethod method, PsiAnnotation annotation,
