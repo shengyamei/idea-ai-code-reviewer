@@ -43,7 +43,7 @@ public class ReviewServicePmdTest extends FrameworkAnalyzerTestCase {
         assertTrue(containsRule(issues, "EmptyCatchBlock"));
     }
 
-    /** 演示样本整文件：应产出 3 条缺陷（事务 1 + PMD 2），锁定演示故事线。 */
+    /** 演示样本整文件：应产出 3 条缺陷（事务 1 + PMD 2），且三条均有可应用的修复补丁，锁定演示故事线。 */
     public void testDemoFileReportsThreeDefects() throws Exception {
         String source = Files.readString(Path.of("demo", "DemoOrderService.java"), StandardCharsets.UTF_8);
         PsiFile file = myFixture.configureByText("DemoOrderService.java", source);
@@ -53,6 +53,22 @@ public class ReviewServicePmdTest extends FrameworkAnalyzerTestCase {
         assertTrue(containsRule(issues, "TransactionRollbackFor"));
         assertTrue(containsRule(issues, "UnusedLocalVariable"));
         assertTrue(containsRule(issues, "EmptyCatchBlock"));
+
+        // 三条缺陷均应标记为可修复且有修复补丁（锁定"应用修复"演示链路）
+        for (IssueModel issue : issues) {
+            assertTrue(issue.getRuleId() + " 应标记为可修复", issue.isFixable());
+            assertNotNull(issue.getRuleId() + " 应有修复补丁", issue.getFixPatch());
+        }
+        // 未使用变量：空补丁 = 删除整行（行尾换行由 FixApplier 连带删除）
+        assertEquals("", findByRule(issues, "UnusedLocalVariable").getFixPatch());
+        // 空 catch：块内补充包装抛出语句，重新评审即可通过
+        assertEquals("        } catch (IOException e) {\n"
+                        + "            throw new IllegalStateException(\"捕获到未处理异常\", e);\n"
+                        + "        }",
+                findByRule(issues, "EmptyCatchBlock").getFixPatch());
+        // 事务：注解行补上 rollbackFor
+        assertEquals("    @Transactional(rollbackFor = Exception.class)",
+                findByRule(issues, "TransactionRollbackFor").getFixPatch());
     }
 
     /**
@@ -76,5 +92,9 @@ public class ReviewServicePmdTest extends FrameworkAnalyzerTestCase {
 
     private static boolean containsRule(List<IssueModel> issues, String ruleId) {
         return issues.stream().anyMatch(issue -> ruleId.equals(issue.getRuleId()));
+    }
+
+    private static IssueModel findByRule(List<IssueModel> issues, String ruleId) {
+        return issues.stream().filter(issue -> ruleId.equals(issue.getRuleId())).findFirst().orElse(null);
     }
 }

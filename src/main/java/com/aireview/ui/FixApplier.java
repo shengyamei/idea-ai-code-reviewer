@@ -44,11 +44,21 @@ public final class FixApplier {
         }
 
         // 行号严格限制在文档范围内（1 起），避免越界；读动作内完成区间计算
+        // 空补丁语义 = 删除 [startLine, endLine] 整行：替换范围扩展到行尾换行符，避免残留空行
         int[] range = ReadAction.compute(() -> {
             int lineCount = document.getLineCount();
             int startLine = Math.min(Math.max(issue.getStartLine(), 1), lineCount);
             int endLine = Math.min(Math.max(issue.getEndLine(), startLine), lineCount);
-            return new int[]{document.getLineStartOffset(startLine - 1), document.getLineEndOffset(endLine - 1)};
+            int replaceStart = document.getLineStartOffset(startLine - 1);
+            int replaceEnd = document.getLineEndOffset(endLine - 1);
+            if (issue.getFixPatch().isEmpty()) {
+                if (endLine < lineCount) {
+                    replaceEnd = document.getLineStartOffset(endLine);
+                } else if (startLine > 1) {
+                    replaceStart = document.getLineEndOffset(startLine - 2);
+                }
+            }
+            return new int[]{replaceStart, replaceEnd};
         });
         int startOffset = range[0];
         int endOffset = range[1];

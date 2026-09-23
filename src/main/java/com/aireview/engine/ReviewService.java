@@ -9,6 +9,7 @@ import com.intellij.psi.PsiFile;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import net.sourceforge.pmd.PMDConfiguration;
@@ -26,6 +27,9 @@ import net.sourceforge.pmd.reporting.RuleViolation;
 public class ReviewService {
 
     private static final Logger LOG = Logger.getInstance(ReviewService.class);
+
+    /** 支持生成修复补丁的 PMD 规则：未使用局部变量（删除该行）、空 catch 块（补充异常处理）。 */
+    private static final Set<String> PMD_PATCHABLE_RULES = Set.of("UnusedLocalVariable", "EmptyCatchBlock");
 
     private final FrameworkAnalyzer frameworkAnalyzer;
 
@@ -96,7 +100,7 @@ public class ReviewService {
         return list;
     }
 
-    /** PMD 违规项 → 统一评审模型。 */
+    /** PMD 违规项 → 统一评审模型。命中可修复清单的规则标记为可修复（修复补丁在 generatePatch 中生成）。 */
     private static IssueModel toIssueModel(RuleViolation violation, String filePath) {
         IssueModel issue = new IssueModel();
         issue.setId(UUID.randomUUID().toString());
@@ -108,7 +112,7 @@ public class ReviewService {
         issue.setEndLine(violation.getEndLine());
         issue.setMessage(violation.getDescription());
         issue.setEvidence("PMD 规则 " + violation.getRule().getName() + "：" + violation.getDescription());
-        issue.setFixable(false);
+        issue.setFixable(PMD_PATCHABLE_RULES.contains(violation.getRule().getName()));
         return issue;
     }
 
@@ -156,17 +160,19 @@ public class ReviewService {
      * 生成修复补丁，填充fixPatch字段。
      * 事务规则：在 @Transactional 注解上补 rollbackFor = Exception.class（复用该行原文、仅替换注解片段，
      * 与"整行替换"语义一致）；注解跨行或行内圆括号不配平时不生成补丁，避免误伤代码。
+     * PMD 规则：未使用变量 -> 空补丁（删除该行，FixApplier 连同行尾换行一起删除）；
+     * 空 catch 块 -> 块内补充"包装抛出"语句，重新评审即可通过。
      */
     private void generatePatch(IssueModel issue, String sourceCode) {
         if (!issue.isFixable()) {
             return;
         }
+        String[] lines = sourceCode.split("\n", -1);
+        int index = issue.getStartLine() - 1;
+        if (index < 0 || index >= lines.length) {
+            return;
+        }
         if ("TransactionRollbackFor".equals(issue.getRuleId())) {
-            String[] lines = sourceCode.split("\n", -1);
-            int index = issue.getStartLine() - 1;
-            if (index < 0 || index >= lines.length) {
-                return;
-            }
             String line = lines[index];
             if (!isBracketBalanced(line)) {
                 return;
@@ -176,7 +182,48 @@ public class ReviewService {
             } else if (line.contains("@Transactional")) {
                 issue.setFixPatch(line.replace("@Transactional", "@Transactional(rollbackFor = Exception.class)"));
             }
+        } else if ("UnusedLocalVariable".equals(issue.getRuleId())) {
+            // 空补丁 = 删除该行（落盘范围由 FixApplier 扩展处理，不留空行）
+            issue.setFixPatch("");
+        } else if ("EmptyCatchBlock".equals(issue.getRuleId())) {
+            issue.setFixPatch(buildEmptyCatchPatch(issue, lines));
         }
+    }
+
+    /**
+     * 空 catch 块修复：保留 catch 头与块尾括号，在块内补充"包装抛出"语句（携带原异常）。
+     * 结构不符合预期（如块内已有其他行）时不生成补丁。
+     */
+    private static String buildEmptyCatchPatch(IssueModel issue, String[] lines) {
+        int first = issue.getStartLine() - 1;
+        int last = issue.getEndLine() - 1;
+        if (first < 0 || last >= lines.length || last < first) {
+            return null;
+        }
+        String header = lines[first];
+        String tail = lines[last];
+        int braceIndex = header.indexOf('}');
+        if (!header.contains("catch") || braceIndex < 0 || !"}".equals(tail.trim())) {
+            return null;
+        }
+        String variable = catchVariableOf(header);
+        String handler = variable == null
+                ? "throw new IllegalStateException(\"捕获到未处理异常\");"
+                : "throw new IllegalStateException(\"捕获到未处理异常\", " + variable + ");";
+        return header + "\n" + " ".repeat(braceIndex + 4) + handler + "\n" + tail;
+    }
+
+    /** 从 catch 头提取异常变量名："} catch (IOException e) {" -> "e"；提取失败返回 null。 */
+    private static String catchVariableOf(String header) {
+        int open = header.indexOf('(');
+        int close = open < 0 ? -1 : header.indexOf(')', open + 1);
+        if (open < 0 || close < 0) {
+            return null;
+        }
+        String inner = header.substring(open + 1, close).trim();
+        int lastSpace = inner.lastIndexOf(' ');
+        String variable = lastSpace >= 0 ? inner.substring(lastSpace + 1) : inner;
+        return variable.matches("\\w+") ? variable : null;
     }
 
     /** 行内圆括号是否配平（跨行注解不生成补丁）。 */
