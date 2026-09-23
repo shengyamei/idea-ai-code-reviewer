@@ -2,12 +2,21 @@ package com.aireview.engine;
 
 import com.aireview.analysis.FrameworkAnalyzer;
 import com.aireview.model.IssueModel;
+import com.aireview.model.Severity;
+import com.aireview.model.Source;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.psi.PsiFile;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import net.sourceforge.pmd.PMDConfiguration;
+import net.sourceforge.pmd.PmdAnalysis;
+import net.sourceforge.pmd.lang.document.FileId;
+import net.sourceforge.pmd.lang.rule.RulePriority;
+import net.sourceforge.pmd.reporting.Report;
+import net.sourceforge.pmd.reporting.RuleViolation;
 
 /**
  * C2模块：ReviewService 评审融合服务
@@ -15,6 +24,8 @@ import java.util.stream.Collectors;
  * 调用：PMD规则扫描、FrameworkAnalyzer框架分析、LLM语义评审
  */
 public class ReviewService {
+
+    private static final Logger LOG = Logger.getInstance(ReviewService.class);
 
     private final FrameworkAnalyzer frameworkAnalyzer;
 
@@ -56,20 +67,67 @@ public class ReviewService {
     }
 
     /**
-     * PMD规则扫描，转换为IssueModel
+     * PMD静态规则扫描（E1），转换为IssueModel。
+     * 校赛启用规则：UnusedLocalVariable（未使用变量）、EmptyCatchBlock（空 catch 块）。
+     * PMD 为纯文本分析、不依赖 IDE 环境；扫描失败时返回空列表，不影响其他引擎。
      */
     private List<IssueModel> runPmdScan(String filePath, String sourceCode) {
         List<IssueModel> list = new ArrayList<>();
-        // 这里后续接入PMD，先保留占位，可扩展
+        try {
+            PMDConfiguration configuration = new PMDConfiguration();
+            configuration.addRuleSet("category/java/bestpractices.xml/UnusedLocalVariable");
+            configuration.addRuleSet("category/java/errorprone.xml/EmptyCatchBlock");
+            try (PmdAnalysis analysis = PmdAnalysis.create(configuration)) {
+                analysis.files().addSourceFile(FileId.fromPathLikeString(filePath), sourceCode);
+                Report report = analysis.performAnalysisAndCollectReport();
+                for (RuleViolation violation : report.getViolations()) {
+                    list.add(toIssueModel(violation, filePath));
+                }
+            }
+        } catch (RuntimeException e) {
+            LOG.warn("PMD 扫描失败，本次跳过规则扫描：" + e.getMessage(), e);
+        }
         return list;
     }
 
+    /** PMD 违规项 → 统一评审模型。 */
+    private static IssueModel toIssueModel(RuleViolation violation, String filePath) {
+        IssueModel issue = new IssueModel();
+        issue.setId(UUID.randomUUID().toString());
+        issue.setSource(Source.RULE);
+        issue.setRuleId(violation.getRule().getName());
+        issue.setSeverity(mapSeverity(violation.getRule().getPriority()));
+        issue.setFilePath(filePath);
+        issue.setStartLine(violation.getBeginLine());
+        issue.setEndLine(violation.getEndLine());
+        issue.setMessage(violation.getDescription());
+        issue.setEvidence("PMD 规则 " + violation.getRule().getName() + "：" + violation.getDescription());
+        issue.setFixable(false);
+        return issue;
+    }
+
+    /** PMD 优先级（1 为最高）映射为评审级别。 */
+    private static Severity mapSeverity(RulePriority priority) {
+        int level = priority.getPriority();
+        if (level <= 2) {
+            return Severity.CRITICAL;
+        }
+        if (level == 3) {
+            return Severity.MAJOR;
+        }
+        if (level == 4) {
+            return Severity.MINOR;
+        }
+        return Severity.INFO;
+    }
+
     /**
-     * LLM大模型评审，调用API并解析JSON结果
+     * LLM大模型评审（E2），调用API并解析JSON结果。
+     * 当前为离线占位：待配置大模型 API Key 后启用（依赖 jackson 已就绪）。
      */
     private List<IssueModel> runLlmReview(String sourceCode, String filePath) {
         List<IssueModel> list = new ArrayList<>();
-        // LLM http调用、json解析占位，后续实现
+        // 预留：接入大模型 API 后在此发起请求，将返回 JSON 解析为 IssueModel（Source.LLM）
         return list;
     }
 
