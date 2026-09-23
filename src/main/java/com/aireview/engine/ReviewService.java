@@ -55,6 +55,9 @@ public class ReviewService {
         List<IssueModel> llmIssues = runLlmReview(fileText, filePath);
         totalIssues.addAll(llmIssues);
 
+        LOG.info("引擎结果：框架 " + frameworkIssues.size() + " 条，PMD " + pmdIssues.size()
+                + " 条，LLM " + llmIssues.size() + " 条");
+
         // 4. 去重 + 按严重级别排序（枚举声明顺序 CRITICAL→INFO，即严重度降序）
         List<IssueModel> mergedList = new ArrayList<>(deduplicate(totalIssues));
         mergedList.sort(Comparator.comparing(IssueModel::getSeverity));
