@@ -71,6 +71,30 @@ public class ReviewServicePmdTest extends FrameworkAnalyzerTestCase {
                 findByRule(issues, "TransactionRollbackFor").getFixPatch());
     }
 
+    /** 演示样本二：用户服务模块，4 条缺陷（事务 1 + 未使用变量 2 + 空 catch 1）+ 2 个合规反例。 */
+    public void testSecondDemoFileReportsFourDefects() throws Exception {
+        String source = Files.readString(Path.of("demo", "DemoUserService.java"), StandardCharsets.UTF_8);
+        PsiFile file = myFixture.configureByText("DemoUserService.java", source);
+        List<IssueModel> issues = ReadAction.compute(() -> new ReviewService(new TransactionalAnalyzer()).review(file));
+
+        assertEquals(4, issues.size());
+        assertEquals(1, countRule(issues, "TransactionRollbackFor"));
+        assertEquals(2, countRule(issues, "UnusedLocalVariable"));
+        assertEquals(1, countRule(issues, "EmptyCatchBlock"));
+        // 合规反例不报告：archive 已配置 rollbackFor（28 行）、markFailed 仅抛运行时异常（33 行）
+        assertFalse(containsLine(issues, 28));
+        assertFalse(containsLine(issues, 33));
+
+        // 事务补丁：注解已有参数时仍能正确插入 rollbackFor
+        assertEquals("    @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRED)",
+                findByRule(issues, "TransactionRollbackFor").getFixPatch());
+        // 4 条缺陷均应可修复
+        for (IssueModel issue : issues) {
+            assertTrue(issue.getRuleId() + " 应标记为可修复", issue.isFixable());
+            assertNotNull(issue.getRuleId() + " 应有修复补丁", issue.getFixPatch());
+        }
+    }
+
     /**
      * PMD 类型系统初始化依赖 classLoader.getResourceAsStream("java/lang/*.class")。
      * IDEA 插件类加载器对 JDK 资源不可见（真机环境中曾导致初始化 NPE），
@@ -96,5 +120,13 @@ public class ReviewServicePmdTest extends FrameworkAnalyzerTestCase {
 
     private static IssueModel findByRule(List<IssueModel> issues, String ruleId) {
         return issues.stream().filter(issue -> ruleId.equals(issue.getRuleId())).findFirst().orElse(null);
+    }
+
+    private static int countRule(List<IssueModel> issues, String ruleId) {
+        return (int) issues.stream().filter(issue -> ruleId.equals(issue.getRuleId())).count();
+    }
+
+    private static boolean containsLine(List<IssueModel> issues, int line) {
+        return issues.stream().anyMatch(issue -> issue.getStartLine() == line);
     }
 }
