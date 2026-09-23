@@ -95,6 +95,20 @@ public class ReviewServicePmdTest extends FrameworkAnalyzerTestCase {
         }
     }
 
+    /** 现场演示保障：模拟"现场编辑制造缺陷"——删掉 archive 的 rollbackFor 参数后，应立即多报 1 条事务。 */
+    public void testLiveEditRemovingRollbackForTriggersNewIssue() throws Exception {
+        String source = Files.readString(Path.of("demo", "DemoUserService.java"), StandardCharsets.UTF_8);
+        String edited = source.replace("@Transactional(rollbackFor = Exception.class)", "@Transactional");
+        assertFalse("样本二应包含可删除的 rollbackFor 参数", source.equals(edited));
+        PsiFile file = myFixture.configureByText("DemoUserService.java", edited);
+        List<IssueModel> issues = ReadAction.compute(() -> new ReviewService(new TransactionalAnalyzer()).review(file));
+
+        // 原 4 条 + archive（28 行）新增 1 条事务
+        assertEquals(5, issues.size());
+        assertEquals(2, countRule(issues, "TransactionRollbackFor"));
+        assertTrue(containsLine(issues, 28));
+    }
+
     /**
      * PMD 类型系统初始化依赖 classLoader.getResourceAsStream("java/lang/*.class")。
      * IDEA 插件类加载器对 JDK 资源不可见（真机环境中曾导致初始化 NPE），
