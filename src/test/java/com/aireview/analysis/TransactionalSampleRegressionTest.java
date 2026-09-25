@@ -18,7 +18,6 @@ import java.util.List;
  * 扫描 src/test/resources/samples 下的 SXX_*.java 样本，
  * 逐个调用 TransactionalAnalyzer 并与同名 .expected.json 比对，收集全部差异后统一报告。
  * 新增样本只需按约定命名成对放置，无需修改本类。
- * 实现人：左晶晶。
  */
 public class TransactionalSampleRegressionTest extends FrameworkAnalyzerTestCase {
 

@@ -9,7 +9,6 @@ import java.util.List;
 /**
  * 事务失效分析器冒烟测试：验证 P1 原型（定位 @Transactional 方法）与 P2 规则 v1 的基本判定。
  * 完整样本集回归（10 个样本 + 期望 JSON）见后续测试，本类只保底验证框架链路可用。
- * 实现人：左晶晶。
  */
 public class TransactionalAnalyzerTest extends FrameworkAnalyzerTestCase {
 

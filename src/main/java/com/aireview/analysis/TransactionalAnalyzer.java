@@ -25,8 +25,8 @@ import java.util.UUID;
 
 /**
  * 框架感知分析器实现：@Transactional 事务失效检测。
- * 校赛 v1 规则：方法声明 throws 受检异常，且注解未配置 rollbackFor / rollbackForClassName。
- * 实现人：左晶晶；调用方：盛雅梅（融合裁决）。
+ * 当前规则：方法声明 throws 受检异常，且注解未配置 rollbackFor / rollbackForClassName。
+ * 由分析层实现，供评审服务在融合裁决阶段调用。
  */
 public class TransactionalAnalyzer implements FrameworkAnalyzer {
 

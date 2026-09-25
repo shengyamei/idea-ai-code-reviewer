@@ -47,7 +47,7 @@ public class ReviewService {
         String fileText = psiFile.getText();
         String filePath = psiFile.getVirtualFile().getPath();
 
-        // 1. 框架规则分析（左晶晶）
+        // 1. 框架规则分析
         List<IssueModel> frameworkIssues = frameworkAnalyzer.analyze(psiFile);
         totalIssues.addAll(frameworkIssues);
 
@@ -75,7 +75,7 @@ public class ReviewService {
 
     /**
      * PMD静态规则扫描（E1），转换为IssueModel。
-     * 校赛启用规则：UnusedLocalVariable（未使用变量）、EmptyCatchBlock（空 catch 块）。
+     * 当前启用规则：UnusedLocalVariable（未使用变量）、EmptyCatchBlock（空 catch 块）。
      * PMD 为纯文本分析、不依赖 IDE 环境；扫描失败时返回空列表，不影响其他引擎。
      */
     private List<IssueModel> runPmdScan(String filePath, String sourceCode) {

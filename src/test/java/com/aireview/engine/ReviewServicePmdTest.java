@@ -14,7 +14,6 @@ import java.util.List;
 
 /**
  * PMD 规则扫描链路测试：验证未使用变量、空 catch 块能被检出并转换为统一模型。
- * 实现人：葛佩娴（集成阶段）。
  */
 public class ReviewServicePmdTest extends FrameworkAnalyzerTestCase {
 

@@ -6,7 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 演示样本二：用户服务模块（现场评审用，模拟真实业务代码，
- * 用于验证插件在不同文件上的实时评审效果；由左晶晶维护）。
+ * 用于验证插件在不同文件上的实时评审效果）。
  */
 class DemoUserService {
 

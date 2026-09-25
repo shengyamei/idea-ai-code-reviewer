@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * 融合层修复补丁生成测试：验证"应用修复"拿到的是真实 rollbackFor 补丁（而非占位文本），
- * 且补丁行与源文件的"整行替换"语义一致。实现人：葛佩娴（集成阶段）。
+ * 且补丁行与源文件的"整行替换"语义一致。
  */
 public class ReviewServicePatchTest extends FrameworkAnalyzerTestCase {
 

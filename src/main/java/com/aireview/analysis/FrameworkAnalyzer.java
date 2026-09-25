@@ -7,7 +7,7 @@ import java.util.List;
 
 /**
  * 框架感知分析器：基于 PSI 做框架级缺陷检测（首条规则：@Transactional 事务失效）。
- * 实现人：左晶晶；调用方：盛雅梅（融合裁决）。
+ * 由分析层实现，供评审服务在融合裁决阶段调用。
  */
 public interface FrameworkAnalyzer {
 

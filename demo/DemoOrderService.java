@@ -3,7 +3,7 @@ import java.io.IOException;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 演示样本（供彩排与答辩现场演示，由左晶晶维护）。
+ * 演示样本（供功能演示与现场答辩使用）。
  * 场景：Spring 订单业务代码；演示工程不带 Spring 依赖，插件按短名降级匹配 @Transactional。
  * 内置缺陷：
  *   1. 事务失效：createOrder 声明受检异常 IOException 且未配置 rollbackFor（核心演示点）；
